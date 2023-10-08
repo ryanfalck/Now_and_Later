@@ -1,0 +1,309 @@
+---
+title: "Now and Later R Analyses Revision 1"
+author: "RSF"
+date: "10/08/2023"
+output: 
+  html_document:
+    toc: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1: Set-up
+```{r}
+setwd("~/Desktop/MONITOR_Now_Later/allquery")
+now<-read.table('Now/combinedfeatquery.txt')
+later<-read.table('Later/combinedfeatquery.txt')
+
+now_means<-subset(now, V2=="stats/cope1")
+later_means<-subset(later, V2=="stats/cope1")
+
+
+Now_pcnt_means<-now_means$V6
+Later_pcnt_means<-later_means$V6
+
+ID<-c("MO-001","MO-009","MO-023","MO-030","MO-033","MO-035","MO-063","MO-078","MO-095","MO-101","MO-106",
+      "MO-109","MO-113","MO-127","MO-138","MO-141","MO-151","MO-153","MO-159","MO-170","MO-188","MO-190",
+      "MO-205","MO-209","MO-223","MO-276")
+
+copes<-as.data.frame(cbind(ID,Now_pcnt_means,Later_pcnt_means))
+
+setwd("~/Desktop/Manuscripts/Complete Projects/MONITOR-Cognitive Outcomes/MONITOR-Data Analyses Original")
+library(openxlsx)
+MONITOR<-read.xlsx("Monitor Full Data Set.xlsx")
+
+MONITOR_2<-subset(MONITOR, ID=="MO-001" | ID=="MO-009" | ID=="MO-023" | ID=="MO-030" | ID=="MO-033" |
+                    ID=="MO-035" | ID=="MO-063" | ID=="MO-078" | ID=="MO-095" | ID=="MO-101" | ID=="MO-106" |
+                    ID=="MO-109" | ID=="MO-113" | ID=="MO-127" | ID=="MO-138" | ID=="MO-141" | ID=="MO-151" | 
+                    ID=="MO-153" | ID=="MO-159" | ID=="MO-170" | ID=="MO-188" | ID=="MO-190" | ID=="MO-205" |
+                    ID=="MO-209" | ID=="MO-223" | ID=="MO-276")
+
+data<-merge(MONITOR_2,copes, by="ID")
+
+data<-data[c(1:3,86,87,6:8,10,16,17,19,21,22,23,24,26,27,45,46,79,80,82:85,20)]
+
+data$Now_pcnt_means<-as.numeric(data$Now_pcnt_means)
+data$Later_pcnt_means<-as.numeric(data$Later_pcnt_means)
+
+varying <- data[c(1:2,6,10:26:length(data))]
+baseline <- subset(data[-c(6,10:26:length(data))],Timepoint==1)
+
+varying.1 <- subset(varying,Timepoint==1)
+varying.2 <- subset(varying,Timepoint==2)
+varying.3 <- subset(varying,Timepoint==3)
+varying.4 <- subset(varying,Timepoint==4)
+
+colnames(varying.1) <- paste(colnames(varying.1),"1",sep=".")
+colnames(varying.2) <- paste(colnames(varying.2),"2",sep=".")
+colnames(varying.3) <- paste(colnames(varying.3),"3",sep=".")
+colnames(varying.4) <- paste(colnames(varying.4),"4",sep=".")
+
+library(dplyr)
+wide.data <- left_join(baseline,varying.1,by=c("ID"="ID.1")) %>% 
+  left_join(.,varying.2,by=c("ID"="ID.2")) %>% 
+  left_join(.,varying.3,by=c("ID"="ID.3")) %>%
+  left_join(.,varying.4,by=c("ID"="ID.4"))
+detach("package:dplyr", unload = TRUE)
+
+Timevars <- grep("Timepoint",colnames(wide.data),value=TRUE)
+wide.data <- wide.data[,!(colnames(wide.data)%in%Timevars)]
+colnames(wide.data) <- (gsub("_","",colnames(wide.data)))
+colnames(wide.data) <- (gsub(".1","baseline",colnames(wide.data)))
+
+library(plyr)
+wide.data2<- rename(wide.data, c("WM.AgeCorrectedScorebaseline"="WMAgeCorrectedScorebaseline","WM.AgeCorrectedScore.2"="WMAgeCorrectedScore.2",
+                                 "WM.AgeCorrectedScore.3"="WMAgeCorrectedScore.3", "WM.AgeCorrectedScore.4"="WMAgeCorrectedScore.4",
+                                 "PSM.AgeCorrectedScorebaseline"="PSMAgeCorrectedScorebaseline","PSM.AgeCorrectedScore.2"="PSMAgeCorrectedScore.2",
+                                 "PSM.AgeCorrectedScore.3"="PSMAgeCorrectedScore.3", "PSM.AgeCorrectedScore.4"="PSMAgeCorrectedScore.4",
+                                 "CHAMPS.TotalPA.Hrsbaseline"="CHAMPSTotalPAHrsbaseline","CHAMPS.TotalPA.Hrs.2"="CHAMPSTotalPAHrs.2",
+                                 "CHAMPS.TotalPA.Hrs.3"="CHAMPSTotalPAHrs.3","CHAMPS.TotalPA.Hrs.4"="CHAMPSTotalPAHrs.4","Champs.Total.SB.Hrsbaseline"="ChampsTotalSBHrsbaseline",
+                                 "Champs.Total.SB.Hrs.2"="ChampsTotalSBHrs.2","Champs.Total.SB.Hrs.3"="ChampsTotalSBHrs.3","Champs.Total.SB.Hrs.4"="ChampsTotalSBHrs.4",
+                                 "Champs.Frequencybaseline"="ChampsFrequencybaseline", "Champs.Frequency.2"="ChampsFrequency.2", "Champs.Frequency.3"="ChampsFrequency.3",
+                                 "Champs.Frequency.4"="ChampsFrequency.4","Champs.MVPA.Frequencybaseline"="ChampsMVPAFrequencybaseline","Champs.MVPA.Frequency.2"="ChampsMVPAFrequency.2",
+                                 "Champs.MVPA.Frequency.3"="ChampsMVPAFrequency.3", "Champs.MVPA.Frequency.4"="ChampsMVPAFrequency.4"))
+detach("package:plyr", unload = TRUE)
+wide.data2$time<-1
+wide.data2<-wide.data2[c(1,84,2:26,27:83)]
+data2 <- reshape(as.data.frame(wide.data2),idvar="ID",varying=c(28:84),direction="long",sep=".") 
+
+library(dplyr)
+wide.data3 <- left_join(baseline,varying.1,by=c("ID"="ID.1")) %>% 
+  left_join(.,varying.2,by=c("ID"="ID.2")) %>% 
+  left_join(.,varying.3,by=c("ID"="ID.3")) %>%
+  left_join(.,varying.4,by=c("ID"="ID.4"))
+detach("package:dplyr", unload = TRUE)
+
+Timevars <- grep("Timepoint",colnames(wide.data3),value=TRUE)
+wide.data3 <- wide.data3[,!(colnames(wide.data3)%in%Timevars)]
+colnames(wide.data3) <- (gsub("_","",colnames(wide.data3)))
+
+library(plyr)
+wide.data3<- rename(wide.data3, c("WM.AgeCorrectedScore.1"="WMAgeCorrectedScore.1","WM.AgeCorrectedScore.2"="WMAgeCorrectedScore.2",
+                                 "WM.AgeCorrectedScore.3"="WMAgeCorrectedScore.3", "WM.AgeCorrectedScore.4"="WMAgeCorrectedScore.4",
+                                 "PSM.AgeCorrectedScore.1"="PSMAgeCorrectedScore.1","PSM.AgeCorrectedScore.2"="PSMAgeCorrectedScore.2",
+                                 "PSM.AgeCorrectedScore.3"="PSMAgeCorrectedScore.3", "PSM.AgeCorrectedScore.4"="PSMAgeCorrectedScore.4",
+                                 "CHAMPS.TotalPA.Hrs.1"="CHAMPSTotalPAHrs.1","CHAMPS.TotalPA.Hrs.2"="CHAMPSTotalPAHrs.2",
+                                 "CHAMPS.TotalPA.Hrs.3"="CHAMPSTotalPAHrs.3","CHAMPS.TotalPA.Hrs.4"="CHAMPSTotalPAHrs.4","Champs.Total.SB.Hrs.1"="ChampsTotalSBHrs.1",
+                                 "Champs.Total.SB.Hrs.2"="ChampsTotalSBHrs.2","Champs.Total.SB.Hrs.3"="ChampsTotalSBHrs.3","Champs.Total.SB.Hrs.4"="ChampsTotalSBHrs.4",
+                                 "Champs.Frequency.1"="ChampsFrequency.1", "Champs.Frequency.2"="ChampsFrequency.2", "Champs.Frequency.3"="ChampsFrequency.3",
+                                 "Champs.Frequency.4"="ChampsFrequency.4","Champs.MVPA.Frequency.1"="ChampsMVPAFrequency.1","Champs.MVPA.Frequency.2"="ChampsMVPAFrequency.2",
+                                 "Champs.MVPA.Frequency.3"="ChampsMVPAFrequency.3", "Champs.MVPA.Frequency.4"="ChampsMVPAFrequency.4"))
+detach("package:plyr", unload = TRUE)
+wide.data3$time<-1
+wide.data3<-wide.data3[c(1,84,2:26,27:83)]
+data3 <- reshape(as.data.frame(wide.data3),idvar="ID",varying=c(9:84),direction="long",sep=".") 
+
+data3$timefactor<-as.factor(data3$time)
+
+data3$Group<-NA
+data3$Group[data3$Treatment.Group==1]<-"Immediate Intervention"
+data3$Group[data3$Treatment.Group==2]<-"Delayed Intervention"
+
+data3$Timepoint<-NA
+data3$Timepoint[data3$time==1]<-"Baseline"
+data3$Timepoint[data3$time==2]<-"2-Months"
+data3$Timepoint[data3$time==3]<-"4-Months"
+data3$Timepoint[data3$time==4]<-"6-Months"
+```
+
+
+#2: Table 1. Participant Characteristics at Baseline
+```{r}
+library(tableone)
+vars<-dput(names(wide.data2[c(5:12,13,17)]))
+Table1<-CreateTableOne(vars=vars, data=wide.data2)
+print(Table1,contDigits=2, missing=TRUE, quote=FALSE)
+
+Table1_strata<-CreateTableOne(vars=vars, strata = "Treatment.Group", data=wide.data2)
+print(Table1_strata,contDigits=2, missing=TRUE, quote=FALSE)
+```
+
+
+#3: Figure 3. Group level changes in MVPA and SB over time
+```{r}
+library(lme4)
+library(robustlmm)
+library(lsmeans)
+library(lmerTest)
+library(ggplot2)
+library(forcats)
+
+#Used linear mixed model (controlling for baseline) to determine estimated marginal
+#means for MVPA and SB by treatment group
+emm_options(opt.digits = FALSE)
+#Changes in MVPA over time
+MVPA.change<-lmer(MVPAMin~factor(time)*Treatment.Group + (1|ID) + MVPAMinbaseline,data2)
+anova(MVPA.change)
+lsmeans(MVPA.change, ~Treatment.Group|time)
+contrast(lsmeans(MVPA.change, ~Treatment.Group|time), "trt.vs.ctrl", adj="none")
+confint(contrast(lsmeans(MVPA.change, ~Treatment.Group|time), "trt.vs.ctrl", adj="none"))
+
+#Changes in SB over time
+SB.change<-lmer(SBMin~factor(time)*Treatment.Group + (1|ID) + SBMinbaseline,data2)
+lsmeans(SB.change, ~Treatment.Group|time)
+contrast(lsmeans(SB.change, ~Treatment.Group|time), "trt.vs.ctrl", adj="none")
+confint(contrast(lsmeans(SB.change, ~Treatment.Group|time), "trt.vs.ctrl", adj="none"))
+
+#Create figure using lsmeans
+MVPA.mean<-c(80.96,65.41,94.96,62.70,75.00,54.09,90.07,69.66) #MVPA means
+MVPA.se<-c(13.9,14.6,9.4,9.8,9.7,9.8,9.7,9.8) #MVPA standard errors
+SB.mean<-c(657.53,723.81,679.58,703.05,711.02,689.96,687.83,694.14) #SB means
+SB.se<-c(30.30,37.78,21.01,21.81,21.68,21.81,21.67,21.81) #SB standard errors
+tx <- c("I-INT", "D-INT", "I-INT", "D-INT", "I-INT", "D-INT", "I-INT", "D-INT") #Treatment Groups
+time <- c("Baseline", "Baseline", "2-Months", "2-Months", "4-Months", "4-Months", "6-Months", "6-Months") #Timepoints
+Fig2data<- data.frame(MVPA.mean, MVPA.se, SB.mean, SB.se, tx, time) #Combine in a dataframe
+
+#MVPA Plot
+library(plyr)
+MVPA.group.graph<- Fig2data %>%
+  mutate(time = fct_relevel(time, 
+                            "Baseline", "2-Months", "4-Months", "6-Months")) %>%
+  ggplot(aes(fill=tx, y=MVPA.mean, x=time)) + geom_bar(position=position_dodge(1), stat="identity") +
+  geom_errorbar(aes(ymin = MVPA.mean - MVPA.se, ymax = MVPA.mean + MVPA.se), position=position_dodge(1), width = 0.2, stat="identity") +
+  labs(x="", y="Moderate-to-Vigorous Physical Activity
+(minutes/day)") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + ylim(0,120)
+
+MVPA.group.graph
+
+#SB Plot
+SB.group.graph<- Fig2data %>%
+  mutate(time = fct_relevel(time, 
+                            "Baseline", "2-Months", "4-Months", "6-Months")) %>%
+  ggplot(aes(fill=tx, y=SB.mean, x=time)) + geom_bar(position=position_dodge(1), stat="identity") +
+  geom_errorbar(aes(ymin = SB.mean - SB.se, ymax = SB.mean + SB.se), position=position_dodge(1), width = 0.2, stat="identity") +
+  labs(x="", y="Sedentary Behaviour
+(minutes/day)") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + ylim(0,800)
+
+SB.group.graph
+
+
+detach("package:plyr", unload = TRUE)
+
+```
+
+#3: Figure 4: Individual changes in MVPA and SB Across Time
+```{r}
+
+library(lme4)
+library(lsmeans)
+library(forcats)
+library(ggplot2)
+library(plyr)
+
+MVPA.Compliance.Graph<- data3 %>%
+  mutate(Timepoint = fct_relevel(Timepoint, 
+                            "Baseline", "2-Months", "4-Months", "6-Months")) %>%
+ggplot() + geom_line(aes(x=Timepoint, y=MVPAMin, group=ID, linetype= Group)) +
+labs(x="", y="Moderate-to-Vigorous Physical Activity 
+  (minutes/day)") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+MVPA.Compliance.Graph
+
+SB.Compliance.Graph<- data3 %>%
+  mutate(Timepoint = fct_relevel(Timepoint, 
+                                 "Baseline", "2-Months", "4-Months", "6-Months")) %>%
+  ggplot() + geom_line(aes(x=Timepoint, y=SBMin, group=ID, linetype= Group)) +
+  labs(x="", y="Sedentary Behaviour 
+(minutes/day)") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + ylim(400,1100)
+SB.Compliance.Graph
+```
+
+
+#4: Create data frames for FSL analyses
+```{r}
+setwd("~/Desktop/MONITOR_Now_Later")
+
+###Cross-sectional Data###
+baselineMVPA<-wide.data2[c(1,3,6,7,8,9,10,13,17)]
+baselineMVPA$Agescale<-scale(baselineMVPA$Age, scale=FALSE)
+baselineMVPA$BMIscale<-scale(baselineMVPA$BMIbaseline, scale=FALSE)
+baselineMVPA$MOCAscale<-scale(baselineMVPA$MoCAbaseline, scale=FALSE)
+baselineMVPA$MVPAscale<-scale(baselineMVPA$MVPAMinbaseline, scale=FALSE)
+baselineMVPA$SBscale<-scale(baselineMVPA$SBMinbaseline, scale=FALSE)
+baselineMVPA$Gender[baselineMVPA$Sex=="Female"]<-0
+baselineMVPA$Gender[baselineMVPA$Sex=="Male"]<-1
+baselineMVPA$Gender<-as.numeric(baselineMVPA$Gender)
+baselineMVPA$Gender<-scale(baselineMVPA$Gender, scale=FALSE)
+baselineMVPA$School[baselineMVPA$Education=="High School Graduate" | baselineMVPA$Education=="High Scool Graduate"]<-1
+baselineMVPA$School[baselineMVPA$Education=="Some College" | baselineMVPA$Education=="Associates Degree"]<-2
+baselineMVPA$School[baselineMVPA$Education=="Postgraduate degree" | baselineMVPA$Education=="Bachelors degree"]<-3
+baselineMVPA$School<-as.numeric(baselineMVPA$School)
+baselineMVPA$School<-scale(baselineMVPA$School, scale=FALSE)
+
+xsectional<-baselineMVPA[c(1,2,10:16)]
+
+write.xlsx(xsectional, "xsectional.xlsx")
+
+
+####Longitudinal Data###
+
+longitudinalMVPA<-wide.data2[c(1,3,6,7,8,9,10,13,17,31,35,49,53,67,71)]
+
+#Create slope and intercepts for time-varying variables#
+MVPAslope<-lmer(MVPAMin~timefactor + (1+ time|ID), data3)
+summary(MVPAslope)
+MVPAslopes<-coef(MVPAslope)$ID
+library(plyr)
+MVPAslopes<-rename(MVPAslopes,c("time"="MVPASlope", "(Intercept)"="MVPAIntercept"))
+MVPAslopes<-cbind(ID,MVPAslopes)
+MVPAslopes<-MVPAslopes[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+SBslope<-lmer(SBMin~timefactor + (1+ time|ID), data3)
+summary(SBslope)
+SBslopes<-coef(SBslope)$ID
+library(plyr)
+SBslopes<-rename(SBslopes,c("time"="SBSlope", "(Intercept)"="SBIntercept"))
+SBslopes<-cbind(ID,SBslopes)
+SBslopes<-SBslopes[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+Slopes<-merge(MVPAslopes,SBslopes,by="ID")
+longitudinal<-merge(longitudinalMVPA,Slopes,by="ID")
+
+longitudinal$Groupscale<-scale(longitudinal$Treatment.Group, scale=FALSE)
+longitudinal$Agescale<-scale(longitudinal$Age, scale=FALSE)
+longitudinal$BMIscale<-scale(longitudinal$BMIbaseline, scale=FALSE)
+longitudinal$MOCAscale<-scale(longitudinal$MoCAbaseline, scale=FALSE)
+longitudinal$Gender[longitudinal$Sex=="Female"]<-0
+longitudinal$Gender[longitudinal$Sex=="Male"]<-1
+longitudinal$School[longitudinal$Education=="High School Graduate" | longitudinal$Education=="High Scool Graduate"]<-1
+longitudinal$School[longitudinal$Education=="Some College" | longitudinal$Education=="Associates Degree"]<-2
+longitudinal$School[longitudinal$Education=="Postgraduate degree" | longitudinal$Education=="Bachelors degree"]<-3
+longitudinal$MVPASlopescale<-scale(longitudinal$MVPASlope, scale=FALSE)
+longitudinal$SBSlopescale<-scale(longitudinal$SBSlope, scale=FALSE)
+
+longitudinal.final<-longitudinal[c(1,2,18:25)]
+
+write.xlsx(longitudinal.final, "longitudinalMVPA.xlsx")
+```
