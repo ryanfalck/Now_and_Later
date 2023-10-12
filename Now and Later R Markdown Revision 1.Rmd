@@ -1,7 +1,7 @@
 ---
 title: "Now and Later R Analyses Revision 1"
 author: "RSF"
-date: "10/08/2023"
+date: "10/11/2023"
 output: 
   html_document:
     toc: true
@@ -31,9 +31,9 @@ ID<-c("MO-001","MO-009","MO-023","MO-030","MO-033","MO-035","MO-063","MO-078","M
 
 copes<-as.data.frame(cbind(ID,Now_pcnt_means,Later_pcnt_means))
 
-setwd("~/Desktop/Manuscripts/Complete Projects/MONITOR-Cognitive Outcomes/MONITOR-Data Analyses Original")
+setwd("~/Desktop/Manuscripts/Ongoing Projects/MONITOR Now and Later/Data")
 library(openxlsx)
-MONITOR<-read.xlsx("Monitor Full Data Set.xlsx")
+MONITOR<-read.xlsx("Monitor Full Data Set REVISED.xlsx")
 
 MONITOR_2<-subset(MONITOR, ID=="MO-001" | ID=="MO-009" | ID=="MO-023" | ID=="MO-030" | ID=="MO-033" |
                     ID=="MO-035" | ID=="MO-063" | ID=="MO-078" | ID=="MO-095" | ID=="MO-101" | ID=="MO-106" |
@@ -42,14 +42,36 @@ MONITOR_2<-subset(MONITOR, ID=="MO-001" | ID=="MO-009" | ID=="MO-023" | ID=="MO-
                     ID=="MO-209" | ID=="MO-223" | ID=="MO-276")
 
 data<-merge(MONITOR_2,copes, by="ID")
+data<-data[c(1:3,87,88,6:8,10,16,17,19,21,22,23,24,26,27,45,46,79,80,82:85,20,86)]
+fulldata<-MONITOR[c(1:3,6:8,10,16,17,19,21,22,23,24,26,27,45,46,79,80,82:85,20,86)]
 
-data<-data[c(1:3,86,87,6:8,10,16,17,19,21,22,23,24,26,27,45,46,79,80,82:85,20)]
+#Full Data#
+fullvarying <- fulldata[c(1:2,4,10:26:length(fulldata))]
+fullbaseline <- subset(fulldata[-c(4,10:26:length(fulldata))],Timepoint==1)
 
+fullvarying.1 <- subset(fullvarying,Timepoint==1)
+fullvarying.2 <- subset(fullvarying,Timepoint==2)
+fullvarying.3 <- subset(fullvarying,Timepoint==3)
+fullvarying.4 <- subset(fullvarying,Timepoint==4)
+
+colnames(fullvarying.1) <- paste(colnames(fullvarying.1),"1",sep=".")
+colnames(fullvarying.2) <- paste(colnames(fullvarying.2),"2",sep=".")
+colnames(fullvarying.3) <- paste(colnames(fullvarying.3),"3",sep=".")
+colnames(fullvarying.4) <- paste(colnames(fullvarying.4),"4",sep=".")
+
+library(dplyr)
+fullwide.data <- left_join(fullbaseline,fullvarying.1,by=c("ID"="ID.1")) %>% 
+  left_join(.,fullvarying.2,by=c("ID"="ID.2")) %>% 
+  left_join(.,fullvarying.3,by=c("ID"="ID.3")) %>%
+  left_join(.,fullvarying.4,by=c("ID"="ID.4"))
+detach("package:dplyr", unload = TRUE)
+
+#MRI Participant Data Set#
 data$Now_pcnt_means<-as.numeric(data$Now_pcnt_means)
 data$Later_pcnt_means<-as.numeric(data$Later_pcnt_means)
 
-varying <- data[c(1:2,6,10:26:length(data))]
-baseline <- subset(data[-c(6,10:26:length(data))],Timepoint==1)
+varying <- data[c(1:2,6,12:28:length(data))]
+baseline <- subset(data[-c(6,12:26:length(data))],Timepoint==1)
 
 varying.1 <- subset(varying,Timepoint==1)
 varying.2 <- subset(varying,Timepoint==2)
@@ -86,8 +108,8 @@ wide.data2<- rename(wide.data, c("WM.AgeCorrectedScorebaseline"="WMAgeCorrectedS
                                  "Champs.MVPA.Frequency.3"="ChampsMVPAFrequency.3", "Champs.MVPA.Frequency.4"="ChampsMVPAFrequency.4"))
 detach("package:plyr", unload = TRUE)
 wide.data2$time<-1
-wide.data2<-wide.data2[c(1,84,2:26,27:83)]
-data2 <- reshape(as.data.frame(wide.data2),idvar="ID",varying=c(28:84),direction="long",sep=".") 
+wide.data2<-wide.data2[c(1,82,2,5:81)]
+data2 <- reshape(as.data.frame(wide.data2),idvar="ID",varying=c(27:80),direction="long",sep=".") 
 
 library(dplyr)
 wide.data3 <- left_join(baseline,varying.1,by=c("ID"="ID.1")) %>% 
@@ -113,8 +135,8 @@ wide.data3<- rename(wide.data3, c("WM.AgeCorrectedScore.1"="WMAgeCorrectedScore.
                                  "Champs.MVPA.Frequency.3"="ChampsMVPAFrequency.3", "Champs.MVPA.Frequency.4"="ChampsMVPAFrequency.4"))
 detach("package:plyr", unload = TRUE)
 wide.data3$time<-1
-wide.data3<-wide.data3[c(1,84,2:26,27:83)]
-data3 <- reshape(as.data.frame(wide.data3),idvar="ID",varying=c(9:84),direction="long",sep=".") 
+wide.data3<-wide.data3[c(1,82,5:81)]
+data3 <- reshape(as.data.frame(wide.data3),idvar="ID",varying=c(8:79),direction="long",sep=".") 
 
 data3$timefactor<-as.factor(data3$time)
 
@@ -131,9 +153,11 @@ data3$Timepoint[data3$time==4]<-"6-Months"
 
 
 #2: Table 1. Participant Characteristics at Baseline
+
+MRI Participants Only
 ```{r}
 library(tableone)
-vars<-dput(names(wide.data2[c(5:12,13,17)]))
+vars<-dput(names(wide.data2[c(4:6,9,7,15,16,26)]))
 Table1<-CreateTableOne(vars=vars, data=wide.data2)
 print(Table1,contDigits=2, missing=TRUE, quote=FALSE)
 
@@ -141,6 +165,15 @@ Table1_strata<-CreateTableOne(vars=vars, strata = "Treatment.Group", data=wide.d
 print(Table1_strata,contDigits=2, missing=TRUE, quote=FALSE)
 ```
 
+Full data
+```{r}
+fullvars<-dput(names(fullwide.data[c(4:6,10,7,16,12,27)]))
+Table1full<-CreateTableOne(vars=fullvars, data=fullwide.data)
+print(Table1full,contDigits=2, missing=TRUE, quote=FALSE)
+
+Table1full_strata<-CreateTableOne(vars=fullvars, strata = "Treatment.Group", data=fullwide.data)
+print(Table1full_strata,contDigits=2, missing=TRUE, quote=FALSE)
+```
 
 #3: Figure 3. Group level changes in MVPA and SB over time
 ```{r}
@@ -244,11 +277,12 @@ SB.Compliance.Graph
 setwd("~/Desktop/MONITOR_Now_Later")
 
 ###Cross-sectional Data###
-baselineMVPA<-wide.data2[c(1,3,6,7,8,9,10,13,17)]
+baselineMVPA<-wide.data2[c(1,3,4,5,6,7,9,11,15,26)]
 baselineMVPA$Agescale<-scale(baselineMVPA$Age, scale=FALSE)
 baselineMVPA$BMIscale<-scale(baselineMVPA$BMIbaseline, scale=FALSE)
-baselineMVPA$MOCAscale<-scale(baselineMVPA$MoCAbaseline, scale=FALSE)
+baselineMVPA$MOCAscale<-scale(baselineMVPA$MoCA, scale=FALSE)
 baselineMVPA$MVPAscale<-scale(baselineMVPA$MVPAMinbaseline, scale=FALSE)
+baselineMVPA$SBscale<-scale(baselineMVPA$SBMinbaseline, scale=FALSE)
 baselineMVPA$SBscale<-scale(baselineMVPA$SBMinbaseline, scale=FALSE)
 baselineMVPA$Gender[baselineMVPA$Sex=="Female"]<-0
 baselineMVPA$Gender[baselineMVPA$Sex=="Male"]<-1
@@ -267,7 +301,7 @@ write.xlsx(xsectional, "xsectional.xlsx")
 
 ####Longitudinal Data###
 
-longitudinalMVPA<-wide.data2[c(1,3,6,7,8,9,10,13,17,31,35,49,53,67,71)]
+longitudinalMVPA<-wide.data2[c(1,3,4,5,6,7,9,11,15,26)]
 
 #Create slope and intercepts for time-varying variables#
 MVPAslope<-lmer(MVPAMin~timefactor + (1+ time|ID), data3)
@@ -294,7 +328,7 @@ longitudinal<-merge(longitudinalMVPA,Slopes,by="ID")
 longitudinal$Groupscale<-scale(longitudinal$Treatment.Group, scale=FALSE)
 longitudinal$Agescale<-scale(longitudinal$Age, scale=FALSE)
 longitudinal$BMIscale<-scale(longitudinal$BMIbaseline, scale=FALSE)
-longitudinal$MOCAscale<-scale(longitudinal$MoCAbaseline, scale=FALSE)
+longitudinal$MOCAscale<-scale(longitudinal$MoCA, scale=FALSE)
 longitudinal$Gender[longitudinal$Sex=="Female"]<-0
 longitudinal$Gender[longitudinal$Sex=="Male"]<-1
 longitudinal$School[longitudinal$Education=="High School Graduate" | longitudinal$Education=="High Scool Graduate"]<-1
@@ -303,7 +337,103 @@ longitudinal$School[longitudinal$Education=="Postgraduate degree" | longitudinal
 longitudinal$MVPASlopescale<-scale(longitudinal$MVPASlope, scale=FALSE)
 longitudinal$SBSlopescale<-scale(longitudinal$SBSlope, scale=FALSE)
 
-longitudinal.final<-longitudinal[c(1,2,18:25)]
+longitudinal.final<-longitudinal[c(1,2,13:18)]
 
 write.xlsx(longitudinal.final, "longitudinalMVPA.xlsx")
+```
+
+#5:Additional reviewer requested analyses
+
+##5.1: Does pain subscale changes relate to changes in MVPA
+
+Data management for full dataset
+```{r}
+fullwide.data$time<-1
+fullwide.data2<-fullwide.data[c(1,85,3:8,12,16,27,31,35,46,50,54,65,69,73,84)]
+fulldata2 <- reshape(as.data.frame(fullwide.data2),idvar="ID",varying=c(9:20),direction="long",sep=".") 
+
+fullID<-c("MO-001", "MO-006", "MO-009", "MO-011", "MO-012", "MO-023", "MO-028", "MO-030", "MO-033", "MO-035", "MO-056", "MO-063",
+          "MO-072", "MO-077", "MO-078", "MO-079", "MO-080", "MO-081", "MO-082", "MO-086", "MO-092", "MO-095", "MO-101", "MO-104",
+          "MO-106", "MO-108", "MO-109", "MO-113", "MO-120", "MO-126", "MO-127", "MO-128", "MO-137", "MO-138", "MO-141", "MO-142",
+          "MO-151", "MO-153", "MO-154", "MO-157", "MO-159", "MO-167", "MO-170", "MO-185", "MO-188", "MO-190", "MO-193", "MO-196",
+          "MO-203", "MO-205", "MO-209", "MO-218", "MO-219", "MO-221", "MO-223", "MO-238", "MO-253", "MO-255", "MO-256", "MO-259",
+          "MO-276")
+```
+
+Create slope and intercepts for time-varying variables for full data
+```{r}
+fullMVPAslope<-lmer(MVPA_Min~factor(time) + (1+ time|ID) + Treatment.Group, fulldata2)
+summary(fullMVPAslope)
+fullMVPAslopes_coef<-coef(fullMVPAslope)$ID
+library(plyr)
+fullMVPAslopes_coef<-rename(fullMVPAslopes_coef,c("time"="MVPASlope", "(Intercept)"="MVPAIntercept"))
+MVPAslopesframe<-cbind(fullID,fullMVPAslopes_coef)
+MVPAslopesframe<-MVPAslopesframe[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+fullSBslope<-lmer(SB_Min~factor(time) + (1+ time|ID) + Treatment.Group, fulldata2)
+summary(fullSBslope)
+fullSBslopes_coef<-coef(fullSBslope)$ID
+library(plyr)
+fullSBslopes_coef<-rename(fullSBslopes_coef,c("time"="SBSlope", "(Intercept)"="SBIntercept"))
+SBslopesframe<-cbind(fullID,fullSBslopes_coef)
+SBslopesframe<-SBslopesframe[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+fullKOOSslope<-lmer(KOOS_Pain~factor(time) + (1+ time|ID) + Treatment.Group, fulldata2)
+summary(fullKOOSslope)
+fullKOOSslope_coef<-coef(fullKOOSslope)$ID
+library(plyr)
+fullKOOSslope_coef<-rename(fullKOOSslope_coef,c("time"="KOOSSlope", "(Intercept)"="KOOSIntercept"))
+KOOSslopeframe<-cbind(fullID,fullKOOSslope_coef)
+KOOSslopeframe<-KOOSslopeframe[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+Slopes1<-merge(MVPAslopesframe,SBslopesframe, by="fullID")
+Slopes2<-merge(Slopes1,KOOSslopeframe, by="fullID")
+```
+
+Correlation for full data
+```{r}
+cor.test(Slopes2$KOOSSlope, Slopes2$MVPASlope)
+cor.test(Slopes2$KOOSSlope, Slopes2$SBSlope)
+```
+
+Create slope and intercepts for time-varying variables for MRI data only
+```{r}
+slopeMVPA<-lmer(MVPA_Min~factor(Timepoint) + (1+ Timepoint|ID) + Treatment.Group, data)
+summary(slopeMVPA)
+slopeMVPA_coef<-coef(slopeMVPA)$ID
+library(plyr)
+slopeMVPA_coef<-rename(slopeMVPA_coef,c("Timepoint"="MVPASlope", "(Intercept)"="MVPAIntercept"))
+slopeMVPAframe<-cbind(ID,slopeMVPA_coef)
+slopeMVPAframe<-slopeMVPAframe[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+slopeSB<-lmer(SB_Min~factor(Timepoint) + (1+ Timepoint|ID) + Treatment.Group, data)
+summary(slopeSB)
+slopeSB_coef<-coef(slopeSB)$ID
+library(plyr)
+slopeSB_coef<-rename(slopeSB_coef,c("Timepoint"="SBSlope", "(Intercept)"="SBIntercept"))
+slopeSBframe<-cbind(ID,slopeSB_coef)
+slopeSBframe<-slopeSBframe[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+slopeKOOS<-lmer(KOOS_Pain~factor(Timepoint) + (1+ Timepoint|ID) + Treatment.Group, data)
+summary(slopeKOOS)
+slopeKOOS_coef<-coef(slopeKOOS)$ID
+library(plyr)
+slopeKOOS_coef<-rename(slopeKOOS_coef,c("Timepoint"="KOOSSlope", "(Intercept)"="KOOSIntercept"))
+slopeKOOSframe<-cbind(ID,slopeKOOS_coef)
+slopeKOOSframe<-slopeKOOSframe[c(1,2)]
+detach("package:plyr", unload = TRUE)
+
+Slopes3<-merge(slopeMVPAframe,slopeSBframe, by="ID")
+Slopes4<-merge(Slopes3,slopeKOOSframe, by="ID")
+```
+
+Correlation for full data
+```{r}
+cor.test(Slopes4$KOOSSlope, Slopes4$MVPASlope)
+cor.test(Slopes4$KOOSSlope, Slopes4$SBSlope)
 ```
